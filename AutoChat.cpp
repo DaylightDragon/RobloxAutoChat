@@ -11,8 +11,6 @@
 
 HWND w;
 wstring curText = L"";
-bool alreadyActive = false;
-int currentlyTypingThreads = 0;
 
 void chatLetter(char c) {
     PostMessage(w, WM_CHAR, c, 0);
