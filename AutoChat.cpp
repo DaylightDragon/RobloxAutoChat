@@ -27,17 +27,29 @@ void SendInputStr(const std::wstring& str) // in C++11, use std::u16string inste
 {
     if (str.empty()) return;
 
-    std::vector<INPUT> input(str.length());
+    //std::vector<INPUT> input;
+    INPUT singleInput;
+
+    WORD lastSymbol = NULL;
+    int i2 = 0;
 
     for (int i = 0; i < str.length(); ++i)
     {
-        input[i].type = INPUT_KEYBOARD;
-        input[i].ki.wScan = (WORD)str[i];
-        input[i].ki.dwFlags = KEYEVENTF_UNICODE;
-        Sleep(10); // just in case
+        /*if (lastSymbol != NULL && lastSymbol == (WORD)str[i]) {
+            SendInput(1, singleInput, sizeof(INPUT));
+            input.clear();
+            i2 = 0;
+        }*/
+        //lastSymbol = (WORD)str[i]; // () thing needed?
+        singleInput.type = INPUT_KEYBOARD;
+        singleInput.ki.wScan = (WORD)str[i];
+        singleInput.ki.dwFlags = KEYEVENTF_UNICODE;
+        SendInput(1, &singleInput, sizeof(INPUT));
+        Sleep(10); // just in case // 10
+        i2 += 1;
     }
 
-    SendInput(input.size(), &input[0], sizeof(INPUT));
+    //if(input.size()>0) SendInput(input.size(), &input[0], sizeof(INPUT));
 }
 
 void keyPress(WORD keyCode)
@@ -100,7 +112,7 @@ void inputMessage()
 
     SendInputStr(curText); // Символы Unicode
 
-    Sleep(50);
+    Sleep(500); // 50
 
     inputKey(0x1c, 200); // enter
     return;
