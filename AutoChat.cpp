@@ -45,7 +45,11 @@ void SendInputStr(const std::wstring& str) // in C++11, use std::u16string inste
         singleInput.ki.wScan = (WORD)str[i];
         singleInput.ki.dwFlags = KEYEVENTF_UNICODE;
         SendInput(1, &singleInput, sizeof(INPUT));
-        Sleep(10); // just in case // 10
+        Sleep(10);
+        if (i > 0 && str[i] == str[i - 1]) {
+            Sleep(40);
+            //cout << "same symbol\n";
+        }
         i2 += 1;
     }
 
@@ -172,6 +176,7 @@ void inputStart() {
 int main()
 {
     //std::locale::global(locale("en_US.utf8"));
+    cout << "Version 1.1" << endl;
     if (RegisterHotKey(NULL, 1, MOD_ALT | MOD_NOREPEAT, 0x4E)) { wprintf(L"Hotkey 'Alt + N': Start/stopInput typing in chat (in the focused window)\n"); }
     if (RegisterHotKey(NULL, 2, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, 0x4E)) { wprintf(L"Hotkey 'Ctrl + Shift + N': Set new text\n"); }
 
