@@ -28,7 +28,8 @@ void SendInputStr(const std::wstring& str) // in C++11, use std::u16string inste
     if (str.empty()) return;
 
     //std::vector<INPUT> input;
-    INPUT singleInput;
+    //string unicodeString = Char.ConvertFromUtf32(str);
+    INPUT singleInput; // = new INPUT[str.Length];
 
     WORD lastSymbol = NULL;
     int i2 = 0;
