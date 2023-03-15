@@ -8,6 +8,10 @@
 #include <cstdlib>
 #include <thread>
 #include <string>
+#include <locale>
+#include <io.h>
+#include <fcntl.h>
+#include <codecvt>
 
 HWND w;
 wstring curText = L"";
@@ -108,6 +112,84 @@ void inputKey(WORD key, int delay) {
 thread* curInputThr;
 boolean stopInput = true;
 
+/*static void sendCharUnicodeTest()
+{
+    //[DllImport("USER32.DLL", CharSet = CharSet.Unicode)]
+
+    / * LoadKeyboardLayout(0x0000041a, 0);
+    
+    cout << key << endl;
+    //MapVirtualKeyEx(key, 0, 0);
+    keybd_event((unsigned char)key, 0, 0, 0);
+    keybd_event((unsigned char)key, 0, KEYEVENTF_KEYUP, 0); * /
+    
+    WORD key = 'й';
+    //short key = VkKeyScan('к');
+
+    INPUT input;
+    input.type = INPUT_KEYBOARD;
+    input.ki.wScan = key;
+    input.ki.dwFlags = KEYEVENTF_UNICODE; // KEYEVENTF_SCANCODE
+
+    SendInput(1, &input, sizeof(INPUT));
+
+    input = INPUT();
+    input.type = INPUT_KEYBOARD;
+    input.ki.wScan = key;
+    input.ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP;
+
+    SendInput(1, &input, sizeof(INPUT));
+}*/
+
+void SendInputString(const std::wstring& str)
+{
+    int len = str.length();
+    if (len == 0) return;
+
+    std::vector<INPUT> in(len * 2);
+    ZeroMemory(&in[0], in.size() * sizeof(INPUT)); // have no idea what is this, but thanks to stakoverflow question 31305404
+
+    int i = 0, idx = 0;
+    while (i < len)
+    {
+        WORD ch = (WORD)str[i++];
+
+        if ((ch < 0xD800) || (ch > 0xDFFF))
+        {
+            in[idx].type = INPUT_KEYBOARD;
+            in[idx].ki.wScan = ch;
+            in[idx].ki.dwFlags = KEYEVENTF_UNICODE;
+            ++idx;
+
+            in[idx] = in[idx - 1];
+            in[idx].ki.dwFlags |= KEYEVENTF_KEYUP;
+            ++idx;
+        }
+        else
+        {
+            in[idx].type = INPUT_KEYBOARD;
+            in[idx].ki.wScan = ch;
+            in[idx].ki.dwFlags = KEYEVENTF_UNICODE;
+            ++idx;
+
+            in[idx].type = INPUT_KEYBOARD;
+            in[idx].ki.wScan = (WORD)str[i++];
+            in[idx].ki.dwFlags = KEYEVENTF_UNICODE;
+            ++idx;
+
+            in[idx] = in[idx - 2];
+            in[idx].ki.dwFlags |= KEYEVENTF_KEYUP;
+            ++idx;
+
+            in[idx] = in[idx - 2];
+            in[idx].ki.dwFlags |= KEYEVENTF_KEYUP;
+            ++idx;
+        }
+    }
+
+    SendInput(in.size(), &in[0], sizeof(INPUT));
+}
+
 void inputMessage()
 {
     inputKey(0x35, 200);
@@ -115,7 +197,15 @@ void inputMessage()
     //wcout << "This " << curText << " L \n";
     Sleep(200);
 
-    SendInputStr(curText); // Символы Unicode
+    wstring thing = L"afsdf Но да зачем";
+
+    //wcout << typeid(curText).name() << endl;
+    //wcout << typeid(thing).name() << endl;
+
+    wcout << (curText == thing) << endl;
+
+    SendInputString(curText); // curText
+    //SendInputStr(curText); // Символы Unicode
 
     Sleep(500); // 50
 
@@ -124,7 +214,13 @@ void inputMessage()
 }
 
 void startTyping() {
+    std::ios_base::sync_with_stdio(false);
+
+    std::locale utf8(std::locale(), new std::codecvt_utf8_utf16<wchar_t>);
+    std::wcout.imbue(utf8);
+
     Sleep(500);
+
     while (!stopInput) {
     //for (int i = 0x1c; i <= 0x1d; i++) { // 5A
         //if (stopInput) return;
@@ -151,7 +247,7 @@ void getLanguageLayout() {
     wcout << lang << endl;
 }
 
-void startTyping2() {
+/*void startTyping2() {
     wcout << "MAKE SURE to switch to ENG keyboard laybout\n";
     Sleep(500);
     SendInputStr(curText);
@@ -166,7 +262,7 @@ void startTyping2() {
             wcout << std::dec;
             inputKey(i, 200);
     }
-}
+}*/
 
 void inputStart() {
     curInputThr = new thread(startTyping);
@@ -174,8 +270,20 @@ void inputStart() {
 
 //InputLoopInit* inputCurInut;
 
+//#include <typeinfo>
+
 int main()
 {
+    //std::locale::global(std::locale("")); // good old friend
+    /*std::ios_base::sync_with_stdio(false);
+
+    std::locale utf8(std::locale(), new std::codecvt_utf8_utf16<wchar_t>);
+    std::wcout.imbue(utf8);*/
+    
+    //_setmode(_fileno(stdout), _O_U16TEXT);
+    //SetConsoleCP(CP_UTF8);
+    bool debugMode = false;
+
     //std::locale::global(locale("en_US.utf8"));
     cout << "Version 1.1" << endl;
     if (RegisterHotKey(NULL, 1, MOD_ALT | MOD_NOREPEAT, 0x4E)) { wprintf(L"Hotkey 'Alt + N': Start/stopInput typing in chat (in the focused window)\n"); }
@@ -187,7 +295,7 @@ int main()
             HWND curHwnd = GetForegroundWindow();
             if (msg.wParam == 1) {
                 w = curHwnd;
-                if (curText == L"") {
+                if (!debugMode && curText == L"") {
                     wcout << "Please, enter the string first\n";
                 }
                 else if (stopInput) {
@@ -211,7 +319,23 @@ int main()
             }
             else if (msg.wParam == 2) {
                 wcout << "Enter the text (Eng only):\n";
-                getline(wcin, curText);
+
+                wchar_t buffer[0x1000];
+                if (!_getws_s(buffer)) cout << "!_getws_s" << endl;
+                const std::wstring first = buffer;
+                //_putws(first.c_str());
+
+                curText = first;
+                wcout << curText << endl; // "l " << curText[curText.size() - 1] << " e"
+
+                wstring thing = L"ab аб";
+                for (int i = 0; i < min(curText.size(), thing.size()); i++) {
+                    wcout << (curText[i] == thing[i]);
+                    if (curText[i] != thing[i]) wcout << " " << curText[i] << " " << thing[i];
+                    wcout << endl;
+                }
+
+                //getline(wcin, curText);
                 if (curText == L"\n") curText = L"";
                 
                 //wcout << "You entered: " << curText << endl;
