@@ -53,7 +53,7 @@ void SendInputStr(const std::wstring& str) // in C++11, use std::u16string inste
         Sleep(10);
         if (i > 0 && str[i] == str[i - 1]) {
             Sleep(40);
-            //cout << "same symbol\n";
+            //wcout << "same symbol\n";
         }
         i2 += 1;
     }
@@ -77,7 +77,7 @@ void keyRelease(WORD keyCode)
     input.type = INPUT_KEYBOARD;
     input.ki.wScan = keyCode;
     input.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-    
+
     SendInput(1, &input, sizeof(INPUT));
 }
 
@@ -117,12 +117,12 @@ boolean stopInput = true;
     //[DllImport("USER32.DLL", CharSet = CharSet.Unicode)]
 
     / * LoadKeyboardLayout(0x0000041a, 0);
-    
-    cout << key << endl;
+
+    wcout << key << endl;
     //MapVirtualKeyEx(key, 0, 0);
     keybd_event((unsigned char)key, 0, 0, 0);
     keybd_event((unsigned char)key, 0, KEYEVENTF_KEYUP, 0); * /
-    
+
     WORD key = 'й';
     //short key = VkKeyScan('к');
 
@@ -222,11 +222,11 @@ void startTyping() {
     Sleep(500);
 
     while (!stopInput) {
-    //for (int i = 0x1c; i <= 0x1d; i++) { // 5A
-        //if (stopInput) return;
-        //key = i;
-        //wcout << std::hex << key << endl;
-        //wcout << std::dec;
+        //for (int i = 0x1c; i <= 0x1d; i++) { // 5A
+            //if (stopInput) return;
+            //key = i;
+            //wcout << std::hex << key << endl;
+            //wcout << std::dec;
         inputMessage();
         // 8000
         for (int i = 0; i < 50; i++) {
@@ -272,20 +272,75 @@ void inputStart() {
 
 //#include <typeinfo>
 
+wchar_t* getWindowName(HWND hwnd) {
+    //int length = GetWindowTextLength(hwnd);
+    //wchar_t* buffer = new wchar_t[length + 1];
+    //GetWindowText(hwnd, buffer, length + 1);
+    //return wstring(buffer);
+
+    wchar_t buffer[256];
+    GetWindowTextW(hwnd, buffer, 256);
+    //std::wstring title(buffer);
+    return buffer;
+}
+
+static BOOL CALLBACK testFindNotepadCallback(HWND hwnd, LPARAM lparam) {
+    /*//cout << hwnd << endl;
+    wprintf(getWindowName(hwnd));
+    wprintf(L"\n");
+    //wcout << "'" << getWindowName(hwnd) << "'" << endl;
+    if (getWindowName(hwnd) == L"*Безымянный — Блокнот") {
+        cout << hwnd << endl;
+
+        /  * // Create the keybd_event message
+        BYTE bKey = VK_RETURN; // example key DWORD
+        //dwFlags = 0;
+        LPARAM lParam = GetMessagePos();
+        SendMessage(hwnd, WM_KEYDOWN, (WPARAM)bKey, (LPARAM)lParam);
+        SendMessage(hwnd, WM_KEYUP, (WPARAM)bKey, (LPARAM)lParam);  *   /
+    }*/
+
+    int length = GetWindowTextLength(hwnd);
+        wchar_t* buffer = new wchar_t[length + 1];
+        GetWindowText(hwnd, buffer, length + 1);
+        wstring ws(buffer);
+        string str(ws.begin(), ws.end());
+
+        //if(IsWindowVisible(hwnd))
+        // 
+        //wcout << "\"" << ws << "\"" << endl;
+        //cout << str << endl;
+
+        if (ws == L"*Безымянный — Блокнот") { // ws == L"HangApp"
+            cout << "Found!\n";
+        }
+
+    return TRUE;
+}
+
+void testThing() {
+    //HWND hwnd = FindWindow(NULL, L"*Безымянный — Блокнот"); // handle to the specific window
+    EnumWindows(testFindNotepadCallback, NULL);
+}
+
 int main()
 {
+    testThing();
+    return 0;
+
     //std::locale::global(std::locale("")); // good old friend
     /*std::ios_base::sync_with_stdio(false);
 
     std::locale utf8(std::locale(), new std::codecvt_utf8_utf16<wchar_t>);
     std::wcout.imbue(utf8);*/
-    
+
     //_setmode(_fileno(stdout), _O_U16TEXT);
+
     //SetConsoleCP(CP_UTF8);
     bool debugMode = false;
 
     //std::locale::global(locale("en_US.utf8"));
-    cout << "Version 1.1" << endl;
+    wcout << "Version 1.1" << endl;
     if (RegisterHotKey(NULL, 1, MOD_ALT | MOD_NOREPEAT, 0x4E)) { wprintf(L"Hotkey 'Alt + N': Start/stopInput typing in chat (in the focused window)\n"); }
     if (RegisterHotKey(NULL, 2, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, 0x4E)) { wprintf(L"Hotkey 'Ctrl + Shift + N': Set new text\n"); }
 
@@ -315,29 +370,44 @@ int main()
                     thread* th = new thread(startTyping);
                     //typingThread = th;
                 }*/
-                
+
             }
             else if (msg.wParam == 2) {
                 wcout << "Enter the text (Eng only):\n";
 
                 wchar_t buffer[0x1000];
-                if (!_getws_s(buffer)) cout << "!_getws_s" << endl;
+                if (!_getws_s(buffer)) wcout << "!_getws_s" << endl;
                 const std::wstring first = buffer;
-                //_putws(first.c_str());
 
                 curText = first;
-                wcout << curText << endl; // "l " << curText[curText.size() - 1] << " e"
+                //wcout << curText << endl; // "l " << curText[curText.size() - 1] << " e"
+                //wcout << "First: ";
+                //_putws(first.c_str());
+                wcout << "CurText: ";
+                _putws(curText.c_str());
+                wcout << curText.c_str() << endl;
+                wcout << curText << endl;
 
-                wstring thing = L"ab аб";
-                for (int i = 0; i < min(curText.size(), thing.size()); i++) {
-                    wcout << (curText[i] == thing[i]);
-                    if (curText[i] != thing[i]) wcout << " " << curText[i] << " " << thing[i];
+                //Sleep(1000);
+                //SendInputString(curText);
+
+                wstring thing = L"a ы";
+                curText += L"";
+                wcout << curText.size() << " vs " << thing.size() << endl;
+                //wcout << curText.c_str().size(); wcout << " vs " << thing.c_str().size() << endl;
+                for (int i = 0; i < thing.size(); i++) { // min(curText.size(),
+                    //wcout << (curText.c_str()[i] == thing[i]);
+                    //wcout << thing[i] << endl;
+                    //_putws(thing[i]);
+                    _putws(to_wstring(thing[i]).c_str());
+
+                    //if (curText[i] != thing[i]) _putws((L" " + to_wstring(curText[i]) + L" " + to_wstring(thing[i])).c_str());
                     wcout << endl;
                 }
 
                 //getline(wcin, curText);
                 if (curText == L"\n") curText = L"";
-                
+
                 //wcout << "You entered: " << curText << endl;
                 //wcout << "MAKE SURE to switch to ENG keyboard laybout\n";
                 //getLanguageLayout();
